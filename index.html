@@ -1,91 +1,289 @@
-<!-- 版本：1.5 -->
+<!-- 版本：2.0 -->
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <title>常識科同儕評分系統 V1.5 (Firebase V9 修復版)</title>
+    <!-- 非常重要：確保 iPad 等行動裝置能正確縮放比例 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>常識科同儕評分系統 V2.0</title>
     <style>
-        /* 暫時隱藏所有頁面，由 JS 控制顯示 */
+        /* =========================================
+           版本 2.0: CSS 介面美化 (活潑小學風)
+           ========================================= */
+        :root {
+            --primary-color: #4A90E2; /* 活潑的天藍色 */
+            --secondary-color: #FF9800; /* 溫暖的橘黃色 (用於強調/提示) */
+            --bg-color: #F4F7FB; /* 柔和的淺灰藍背景 */
+            --card-bg: #FFFFFF;
+            --text-color: #333333;
+            --border-radius: 16px;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* 統一的卡片容器 */
+        .container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 800px; /* 限制最大寬度，在網頁版置中好看，iPad 上能全螢幕 */
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            margin-top: 20px;
+        }
+
+        h2 { color: var(--primary-color); text-align: center; border-bottom: 2px dashed #bbdefb; padding-bottom: 15px;}
+        h3 { color: #555; }
+        
+        /* 隱藏頁面的類別 */
         .page { display: none; }
-        /* 簡單的預設樣式，方便測試 */
-        body { font-family: sans-serif; padding: 20px; }
-        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
-        input, select, textarea { padding: 8px; margin: 5px 0; }
+        .page.active { display: block; animation: fadeIn 0.5s; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 按鈕基本樣式 */
+        button {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 12px 24px;
+            margin: 8px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:active { transform: scale(0.96); box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+        
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: #357ABD; }
+        .btn-danger { background-color: #E74C3C; color: white; }
+        .btn-warning { background-color: var(--secondary-color); color: white; }
+        .btn-outline { background-color: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); }
+
+        /* 老師控制台：組別按鈕網格佈局 (適合網頁版) */
+        #groupButtons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        #groupButtons button { margin: 0; height: 60px; font-size: 20px; }
+
+        /* 表單元素美化 (輸入框、下拉選單) */
+        input[type="password"], select, textarea {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            font-family: inherit;
+        }
+        select:focus, textarea:focus, input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 8px rgba(74, 144, 226, 0.3); }
+
+        /* V2.0 核心更新：iPad 觸控評分按鈕列 */
+        .criterion-box {
+            background-color: #f9fbfd;
+            border: 1px solid #e0e6ed;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+        .criterion-title { margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #2c3e50; }
+        
+        .score-group {
+            display: flex;
+            justify-content: space-between;
+            max-width: 400px;
+            margin: 0 auto; /* 讓分數按鈕在卡片中置中 */
+        }
+        .score-btn {
+            background-color: #e0e0e0;
+            color: #555;
+            border-radius: 50%; /* 圓形按鈕 */
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            margin: 0;
+            box-shadow: none;
+        }
+        .score-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            transform: scale(1.15);
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.4);
+            border: 2px solid #fff;
+        }
+
+        /* 老師結果顯示區塊 */
+        #resultsArea { background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; }
+        .result-item { background: white; margin-bottom: 10px; padding: 10px 15px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 5px solid var(--primary-color); }
+        
+        /* 置中內容 */
+        .center-content { text-align: center; }
+
     </style>
 </head>
 <body>
 
-    <!-- 系統首頁 -->
-    <div id="homePage" class="page" style="display:block;">
-        <h2>常識科同儕評分系統 (V1.5)</h2>
-        <button id="btnTeacherLogin">老師登入</button>
-        <button id="btnStudentLogin">學生進入</button>
-    </div>
-
-    <!-- 老師登入頁 -->
-    <div id="teacherLogin" class="page">
-        <h2>老師登入</h2>
-        <input type="password" id="teacherPwd" placeholder="請輸入密碼 (9999)">
-        <button id="btnVerifyTeacher">登入</button>
-        <button id="btnBackToHomeFromTeacher">返回</button>
-    </div>
-
-    <!-- 老師主面板 -->
-    <div id="teacherPanel" class="page">
-        <h2>老師主頁 (控制台)</h2>
-        <div id="groupButtons">
-            <button data-group="1">第一組匯報</button>
-            <button data-group="2">第二組匯報</button>
-            <button data-group="3">第三組匯報</button>
-            <button data-group="4">第四組匯報</button>
-            <button data-group="5">第五組匯報</button>
-            <button data-group="6">第六組匯報</button>
-        </div>
-        <hr>
-        <h3 id="currentActiveGroupText">目前未有組別進行匯報</h3>
-        <button id="btnViewResults">顯示評分及留言</button>
-        <button id="btnResetGroup">重新評分 (清空當前組別紀錄)</button>
-        <button id="btnStopGrading">返回主頁 (停止評分)</button>
-        
-        <div id="resultsArea" style="display:none; border:1px solid #000; padding:10px; margin-top:10px;"></div>
-    </div>
-
-    <!-- 學生等待/選號/評分頁面 -->
-    <div id="studentPanel" class="page">
-        <h2 id="studentTitle">等待老師開始...</h2>
-        
-        <!-- 選擇學號區 -->
-        <div id="studentIdSelectArea" style="display:none;">
-            <label>請選擇你的學號：</label>
-            <select id="studentId">
-                <option value="">--請選擇--</option>
-                <!-- JS 動態生成 01-28 -->
-            </select>
-            <button id="btnProceedToGrade">確定</button>
-            <button id="btnBackToHomeFromStudent">返回首頁</button>
+    <div class="container">
+        <!-- 系統首頁 -->
+        <div id="homePage" class="page active center-content">
+            <h2>🌟 常識科專題同儕評分系統 🌟</h2>
+            <p style="font-size: 18px; color: #666; margin-bottom: 30px;">請選擇你的身分進入系統</p>
+            <button id="btnTeacherLogin" class="btn-warning" style="width: 200px; height: 60px;">👩‍🏫 老師登入</button>
+            <br><br>
+            <button id="btnStudentLogin" class="btn-primary" style="width: 200px; height: 60px; font-size: 22px;">👦👧 學生進入</button>
         </div>
 
-        <!-- 評分區 -->
-        <div id="gradingArea" style="display:none;">
-            <h3 id="gradingGroupTitle"></h3>
-            <form id="gradingForm">
-                <p>1. 內容充實 (已包括CANVA設計) : <input type="number" id="s1" min="1" max="5" value="5" class="score-input"></p>
-                <p>2. 編程難度 : <input type="number" id="s2" min="1" max="5" value="5" class="score-input"></p>
-                <p>3. 作品完成度 (包含作品美觀) : <input type="number" id="s3" min="1" max="5" value="5" class="score-input"></p>
-                <p>4. 設計理念 (是否具創意) : <input type="number" id="s4" min="1" max="5" value="5" class="score-input"></p>
-                <p>5. 分工合作 : <input type="number" id="s5" min="1" max="5" value="5" class="score-input"></p>
-                <p>給同學的讚賞或建議留言：<br><textarea id="comment" rows="3" cols="30"></textarea></p>
-                <button type="button" id="btnSubmitGrade">提交評分</button>
-            </form>
+        <!-- 老師登入頁 -->
+        <div id="teacherLogin" class="page center-content">
+            <h2>老師登入區</h2>
+            <input type="password" id="teacherPwd" placeholder="請輸入4位數字密碼" style="text-align: center;">
+            <br>
+            <button id="btnVerifyTeacher" class="btn-primary">確認登入</button>
+            <button id="btnBackToHomeFromTeacher" class="btn-outline">返回</button>
+        </div>
+
+        <!-- 老師主面板 (網頁版優化) -->
+        <div id="teacherPanel" class="page">
+            <h2>👨‍🏫 老師控制台</h2>
+            <h3 id="currentActiveGroupText" style="text-align:center; color: var(--secondary-color); background: #fff3e0; padding: 10px; border-radius: 8px;">準備就緒，請選擇匯報組別</h3>
+            
+            <div id="groupButtons">
+                <button class="btn-primary" data-group="1">第 1 組</button>
+                <button class="btn-primary" data-group="2">第 2 組</button>
+                <button class="btn-primary" data-group="3">第 3 組</button>
+                <button class="btn-primary" data-group="4">第 4 組</button>
+                <button class="btn-primary" data-group="5">第 5 組</button>
+                <button class="btn-primary" data-group="6">第 6 組</button>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="btnViewResults" class="btn-warning">📊 顯示評分及留言</button>
+                <button id="btnResetGroup" class="btn-danger">🗑️ 重置當前組別</button>
+                <button id="btnStopGrading" class="btn-outline">⏹️ 停止評分並返回</button>
+            </div>
+            
+            <div id="resultsArea" style="display:none; padding:15px; margin-top:20px;"></div>
+        </div>
+
+        <!-- 學生等待/選號/評分頁面 (iPad 觸控優化) -->
+        <div id="studentPanel" class="page">
+            <h2 id="studentTitle" class="center-content">⏳ 等待老師指示...</h2>
+            
+            <!-- 選擇學號區 -->
+            <div id="studentIdSelectArea" style="display:none;" class="center-content">
+                <h3 style="color: var(--primary-color);">請先選擇你的專屬學號</h3>
+                <select id="studentId" style="max-width: 300px; text-align: center;">
+                    <option value="">-- 請下拉選擇 --</option>
+                    <!-- JS 動態生成 01-28 -->
+                </select>
+                <br>
+                <button id="btnProceedToGrade" class="btn-primary" style="width: 150px;">開始評分</button>
+                <button id="btnBackToHomeFromStudent" class="btn-outline">返回首頁</button>
+            </div>
+
+            <!-- 評分區 (觸控按鈕設計) -->
+            <div id="gradingArea" style="display:none;">
+                <h3 id="gradingGroupTitle" class="center-content" style="color: var(--secondary-color);"></h3>
+                <form id="gradingForm">
+                    
+                    <!-- 題目 1 -->
+                    <div class="criterion-box">
+                        <p class="criterion-title">1. 內容充實 (已包括CANVA設計)</p>
+                        <div class="score-group" data-criterion="0">
+                            <button type="button" class="score-btn" data-val="1">1</button>
+                            <button type="button" class="score-btn" data-val="2">2</button>
+                            <button type="button" class="score-btn" data-val="3">3</button>
+                            <button type="button" class="score-btn" data-val="4">4</button>
+                            <button type="button" class="score-btn active" data-val="5">5</button>
+                        </div>
+                    </div>
+
+                    <!-- 題目 2 -->
+                    <div class="criterion-box">
+                        <p class="criterion-title">2. 編程難度</p>
+                        <div class="score-group" data-criterion="1">
+                            <button type="button" class="score-btn" data-val="1">1</button>
+                            <button type="button" class="score-btn" data-val="2">2</button>
+                            <button type="button" class="score-btn" data-val="3">3</button>
+                            <button type="button" class="score-btn" data-val="4">4</button>
+                            <button type="button" class="score-btn active" data-val="5">5</button>
+                        </div>
+                    </div>
+
+                    <!-- 題目 3 -->
+                    <div class="criterion-box">
+                        <p class="criterion-title">3. 作品完成度 (包含作品美觀)</p>
+                        <div class="score-group" data-criterion="2">
+                            <button type="button" class="score-btn" data-val="1">1</button>
+                            <button type="button" class="score-btn" data-val="2">2</button>
+                            <button type="button" class="score-btn" data-val="3">3</button>
+                            <button type="button" class="score-btn" data-val="4">4</button>
+                            <button type="button" class="score-btn active" data-val="5">5</button>
+                        </div>
+                    </div>
+
+                    <!-- 題目 4 -->
+                    <div class="criterion-box">
+                        <p class="criterion-title">4. 設計理念 (是否具創意)</p>
+                        <div class="score-group" data-criterion="3">
+                            <button type="button" class="score-btn" data-val="1">1</button>
+                            <button type="button" class="score-btn" data-val="2">2</button>
+                            <button type="button" class="score-btn" data-val="3">3</button>
+                            <button type="button" class="score-btn" data-val="4">4</button>
+                            <button type="button" class="score-btn active" data-val="5">5</button>
+                        </div>
+                    </div>
+
+                    <!-- 題目 5 -->
+                    <div class="criterion-box">
+                        <p class="criterion-title">5. 分工合作</p>
+                        <div class="score-group" data-criterion="4">
+                            <button type="button" class="score-btn" data-val="1">1</button>
+                            <button type="button" class="score-btn" data-val="2">2</button>
+                            <button type="button" class="score-btn" data-val="3">3</button>
+                            <button type="button" class="score-btn" data-val="4">4</button>
+                            <button type="button" class="score-btn active" data-val="5">5</button>
+                        </div>
+                    </div>
+
+                    <!-- 留言區 -->
+                    <div class="criterion-box">
+                        <p class="criterion-title">💬 給同學的讚賞或建議留言：</p>
+                        <textarea id="comment" rows="3" placeholder="寫下你想鼓勵同學的話吧！"></textarea>
+                    </div>
+
+                    <div class="center-content">
+                        <button type="button" id="btnSubmitGrade" class="btn-primary" style="width: 100%; max-width: 300px; height: 60px; font-size: 22px;">📤 提交評分</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <!-- V1.5 更新：使用 Firebase V9 模組化寫法 -->
+    <!-- Firebase 邏輯維持 V1.5 的 V9 模組化穩定版 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-        // 用戶提供的 Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyCScG999fCW5L6956AvYez0IbLVNPKefXg",
             authDomain: "grading--project-base-learning.firebaseapp.com",
@@ -97,16 +295,18 @@
             measurementId: "G-XMTEPNY44P"
         };
 
-        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // 系統狀態變數
+        // 系統狀態
         let currentRole = '';
         let hasAlerted = false; 
         let currentActiveGroup = null; 
+        
+        // V2.0 新增：使用陣列儲存學生的 5 項評分，預設全為 5 分
+        let studentScores = [5, 5, 5, 5, 5]; 
 
-        // DOM 元素選取
+        // DOM 選取
         const pages = document.querySelectorAll('.page');
         const resultsArea = document.getElementById('resultsArea');
         const currentActiveGroupText = document.getElementById('currentActiveGroupText');
@@ -114,7 +314,6 @@
         const studentIdSelectArea = document.getElementById('studentIdSelectArea');
         const gradingArea = document.getElementById('gradingArea');
         const gradingGroupTitle = document.getElementById('gradingGroupTitle');
-        const gradingForm = document.getElementById('gradingForm');
         const studentSelect = document.getElementById('studentId');
 
         // 初始化學號 01-28
@@ -126,40 +325,27 @@
             studentSelect.appendChild(option);
         }
 
-        // 頁面切換邏輯
+        // 頁面切換特效
         function showPage(pageId) {
-            pages.forEach(p => p.style.display = 'none');
-            document.getElementById(pageId).style.display = 'block';
+            pages.forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
         }
 
         // --- 事件綁定 ---
+        document.getElementById('btnTeacherLogin').addEventListener('click', () => { currentRole = 'teacher'; showPage('teacherLogin'); });
+        document.getElementById('btnStudentLogin').addEventListener('click', () => { currentRole = 'student'; showPage('studentPanel'); checkTeacherStatusLocally(); });
 
-        // 首頁按鈕
-        document.getElementById('btnTeacherLogin').addEventListener('click', () => {
-            currentRole = 'teacher';
-            showPage('teacherLogin');
-        });
-        document.getElementById('btnStudentLogin').addEventListener('click', () => {
-            currentRole = 'student';
-            showPage('studentPanel');
-            checkTeacherStatusLocally();
-        });
-
-        // 老師登入頁按鈕
         document.getElementById('btnVerifyTeacher').addEventListener('click', () => {
             if(document.getElementById('teacherPwd').value === '9999'){
                 showPage('teacherPanel');
                 document.getElementById('teacherPwd').value = '';
             } else {
-                alert('密碼錯誤！');
+                alert('❌ 密碼錯誤！請重新輸入。');
             }
         });
-        document.getElementById('btnBackToHomeFromTeacher').addEventListener('click', () => {
-            currentRole = '';
-            showPage('homePage');
-        });
+        document.getElementById('btnBackToHomeFromTeacher').addEventListener('click', () => { currentRole = ''; showPage('homePage'); });
 
-        // 老師主控台按鈕 (群組匯報)
+        // 老師按下群組按鈕
         document.querySelectorAll('#groupButtons button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const groupNum = e.target.getAttribute('data-group');
@@ -168,33 +354,38 @@
         });
 
         document.getElementById('btnStopGrading').addEventListener('click', () => {
-            set(ref(db, 'system/activeGroup'), null).then(() => {
-                currentRole = '';
-                showPage('homePage');
+            set(ref(db, 'system/activeGroup'), null).then(() => { currentRole = ''; showPage('homePage'); });
+        });
+        document.getElementById('btnViewResults').addEventListener('click', viewResults);
+        document.getElementById('btnResetGroup').addEventListener('click', resetCurrentGroup);
+        document.getElementById('btnProceedToGrade').addEventListener('click', proceedToGrade);
+        document.getElementById('btnSubmitGrade').addEventListener('click', submitGrade);
+        document.getElementById('btnBackToHomeFromStudent').addEventListener('click', () => { currentRole = ''; showPage('homePage'); });
+
+        // V2.0 新增：綁定觸控分數按鈕事件
+        document.querySelectorAll('.score-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // 1. 找到這顆按鈕屬於哪一題 (0-4)
+                const group = e.target.closest('.score-group');
+                const criterionIndex = parseInt(group.getAttribute('data-criterion'));
+                const scoreValue = parseInt(e.target.getAttribute('data-val'));
+
+                // 2. 改變視覺狀態 (拔除該題其他按鈕的 active，加在自己身上)
+                group.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+
+                // 3. 更新數據陣列
+                studentScores[criterionIndex] = scoreValue;
+
+                // 4. 檢查是否觸發低分警告
+                checkTotalLowScores();
             });
         });
 
-        document.getElementById('btnViewResults').addEventListener('click', viewResults);
-        document.getElementById('btnResetGroup').addEventListener('click', resetCurrentGroup);
-
-        // 學生頁面按鈕
-        document.getElementById('btnProceedToGrade').addEventListener('click', proceedToGrade);
-        document.getElementById('btnSubmitGrade').addEventListener('click', submitGrade);
-        document.getElementById('btnBackToHomeFromStudent').addEventListener('click', () => {
-             currentRole = '';
-             showPage('homePage');
-        });
-
-        // 綁定分數輸入框變更事件
-        document.querySelectorAll('.score-input').forEach(input => {
-            input.addEventListener('change', checkTotalLowScores);
-        });
-
-        // --- 核心功能函式 ---
-
+        // --- 核心功能 ---
         function startGrading(groupNum) {
             set(ref(db, 'system/activeGroup'), groupNum).catch(err => {
-                alert("連接資料庫失敗，請確認 Firebase Rules 已設為 true。");
+                alert("連接資料庫失敗。");
                 console.error(err);
             });
         }
@@ -205,21 +396,23 @@
             get(ref(db, 'grades/' + currentActiveGroup)).then((snapshot) => {
                 let data = snapshot.val();
                 if(!data) {
-                    resultsArea.innerHTML = `<h4>第 ${currentActiveGroup} 組 目前尚無評分紀錄</h4>`;
+                    resultsArea.innerHTML = `<h4 style="color:#e74c3c;">第 ${currentActiveGroup} 組 目前尚無同學提交評分紀錄。</h4>`;
                     resultsArea.style.display = 'block';
                     return;
                 }
 
                 let count = Object.keys(data).length;
-                let html = `<h4>第 ${currentActiveGroup} 組 收集到的評分 (${count}份)</h4><ul>`;
+                let html = `<h3 style="color:var(--primary-color);">第 ${currentActiveGroup} 組 共收集到 ${count} 份評分</h3>`;
                 
                 for(let studentId in data) {
                     let d = data[studentId];
                     let total = d.scores.reduce((a,b)=>a+b, 0);
-                    html += `<li>總分: ${total}/25 | 匿名留言: ${d.comment || '無'}</li>`;
+                    // 美化結果顯示
+                    html += `<div class="result-item">
+                                <strong>總分: ${total}/25</strong> <br>
+                                <span style="color:#666; font-size:14px;">📝 留言: ${d.comment || '無'}</span>
+                             </div>`;
                 }
-                html += `</ul>`;
-                
                 resultsArea.innerHTML = html;
                 resultsArea.style.display = 'block';
             });
@@ -227,9 +420,9 @@
 
         function resetCurrentGroup() {
             if(!currentActiveGroup) return;
-            if(confirm(`確定要清空第 ${currentActiveGroup} 組的所有評分嗎？這是無法復原的！`)){
+            if(confirm(`⚠️ 確定要清空第 ${currentActiveGroup} 組的所有評分嗎？這是無法復原的！`)){
                 remove(ref(db, 'grades/' + currentActiveGroup)).then(() => {
-                    alert('已重置');
+                    alert('✅ 已成功清空資料。');
                     viewResults();
                 });
             }
@@ -238,11 +431,11 @@
         function checkTeacherStatusLocally() {
             if(currentRole !== 'student') return;
             if(currentActiveGroup) {
-                studentTitle.innerText = `第 ${currentActiveGroup} 組正在匯報`;
+                studentTitle.innerHTML = `📢 <b>第 ${currentActiveGroup} 組</b> 正在匯報`;
                 studentIdSelectArea.style.display = 'block';
                 gradingArea.style.display = 'none';
             } else {
-                studentTitle.innerText = `等待老師開始...`;
+                studentTitle.innerHTML = `⏳ 等待老師指示...`;
                 studentIdSelectArea.style.display = 'none';
                 gradingArea.style.display = 'none';
             }
@@ -250,25 +443,29 @@
 
         function proceedToGrade() {
             if(studentSelect.value === ''){
-                return alert('請先選擇學號！');
+                return alert('⚠️ 請先選擇你的學號！');
             }
             studentIdSelectArea.style.display = 'none';
-            gradingGroupTitle.innerText = `正在為 第 ${currentActiveGroup} 組 評分`;
+            gradingGroupTitle.innerHTML = `正在為 <b>第 ${currentActiveGroup} 組</b> 評分`;
             gradingArea.style.display = 'block';
-            gradingForm.reset();
+            
+            // 重置表單狀態與視覺按鈕 (預設全為5)
+            studentScores = [5, 5, 5, 5, 5];
+            document.querySelectorAll('.score-group').forEach(group => {
+                group.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+                group.querySelector('.score-btn[data-val="5"]').classList.add('active');
+            });
+            document.getElementById('comment').value = '';
             hasAlerted = false; 
         }
 
         function checkTotalLowScores() {
-            let lowCount = 0;
-            for(let i=1; i<=5; i++){
-                if(parseInt(document.getElementById('s'+i).value) <= 2) {
-                    lowCount++;
-                }
-            }
+            // V2.0：從陣列中計算 2 分或以下的數量
+            let lowCount = studentScores.filter(score => score <= 2).length;
+            
             if(lowCount > 3) {
                 if(!hasAlerted) {
-                    alert("溫馨提示：請同學確認評分是否合理，並以欣賞角度出發。");
+                    alert("💡 溫馨提示：請同學確認評分是否合理，並盡量以欣賞同學付出心血的角度出發喔！");
                     hasAlerted = true; 
                 }
             } else {
@@ -278,25 +475,19 @@
 
         function submitGrade() {
             let studentId = studentSelect.value;
-            let scores = [
-                parseInt(document.getElementById('s1').value),
-                parseInt(document.getElementById('s2').value),
-                parseInt(document.getElementById('s3').value),
-                parseInt(document.getElementById('s4').value),
-                parseInt(document.getElementById('s5').value)
-            ];
             let comment = document.getElementById('comment').value;
 
+            // 確保有輸入評分資料才上傳
             get(ref(db, `grades/${currentActiveGroup}/${studentId}`)).then((snapshot) => {
                 if(snapshot.exists()) {
-                    alert('你已經評估過這組了！');
+                    alert('⚠️ 你已經提交過這組的評分了！專心看下一組吧。');
                 } else {
                     set(ref(db, `grades/${currentActiveGroup}/${studentId}`), {
-                        scores: scores,
+                        scores: studentScores, // 傳送陣列資料
                         comment: comment
                     }).then(() => {
-                        alert('提交成功！謝謝你的評分。');
-                        checkTeacherStatusLocally(); 
+                        alert('✅ 提交成功！謝謝你的評分。');
+                        checkTeacherStatusLocally(); // 返回等待區
                     });
                 }
             });
@@ -307,11 +498,11 @@
             currentActiveGroup = snapshot.val();
             if(currentRole === 'teacher') {
                 if(currentActiveGroup) {
-                    currentActiveGroupText.innerText = `正在評分：第 ${currentActiveGroup} 組`;
+                    currentActiveGroupText.innerHTML = `📢 正在收集 <b>第 ${currentActiveGroup} 組</b> 的評分...`;
                 } else {
-                    currentActiveGroupText.innerText = `目前未有組別進行匯報`;
+                    currentActiveGroupText.innerHTML = `準備就緒，請選擇匯報組別`;
                 }
-                resultsArea.style.display = 'none'; // 切換組別時隱藏結果
+                resultsArea.style.display = 'none'; 
             }
             if(currentRole === 'student') {
                 checkTeacherStatusLocally();
