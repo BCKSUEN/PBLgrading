@@ -1,116 +1,323 @@
-<!-- 版本：1.4 -->
+<!-- 版本：1.5 -->
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <title>常識科同儕評分系統 V1.4 (Firebase精準連線版)</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <title>常識科同儕評分系統 V1.5 (Firebase V9 修復版)</title>
+    <style>
+        /* 暫時隱藏所有頁面，由 JS 控制顯示 */
+        .page { display: none; }
+        /* 簡單的預設樣式，方便測試 */
+        body { font-family: sans-serif; padding: 20px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        input, select, textarea { padding: 8px; margin: 5px 0; }
+    </style>
 </head>
 <body>
 
-    <div id="homePage">
-        <h2>常識科同儕評分系統 (V1.4)</h2>
-        <button onclick="login('teacher')">老師登入</button>
-        <button onclick="login('student')">學生進入</button>
+    <!-- 系統首頁 -->
+    <div id="homePage" class="page" style="display:block;">
+        <h2>常識科同儕評分系統 (V1.5)</h2>
+        <button id="btnTeacherLogin">老師登入</button>
+        <button id="btnStudentLogin">學生進入</button>
     </div>
 
-    <div id="teacherLogin" style="display:none;">
+    <!-- 老師登入頁 -->
+    <div id="teacherLogin" class="page">
         <h2>老師登入</h2>
-        <input type="password" id="teacherPwd" placeholder="請輸入密碼">
-        <button onclick="verifyTeacher()">登入</button>
-        <button onclick="showPage('homePage')">返回</button>
+        <input type="password" id="teacherPwd" placeholder="請輸入密碼 (9999)">
+        <button id="btnVerifyTeacher">登入</button>
+        <button id="btnBackToHomeFromTeacher">返回</button>
     </div>
 
-    <div id="teacherPanel" style="display:none;">
+    <!-- 老師主面板 -->
+    <div id="teacherPanel" class="page">
         <h2>老師主頁 (控制台)</h2>
-        <div>
-            <button onclick="startGrading(1)">第一組匯報</button>
-            <button onclick="startGrading(2)">第二組匯報</button>
-            <button onclick="startGrading(3)">第三組匯報</button>
-            <button onclick="startGrading(4)">第四組匯報</button>
-            <button onclick="startGrading(5)">第五組匯報</button>
-            <button onclick="startGrading(6)">第六組匯報</button>
+        <div id="groupButtons">
+            <button data-group="1">第一組匯報</button>
+            <button data-group="2">第二組匯報</button>
+            <button data-group="3">第三組匯報</button>
+            <button data-group="4">第四組匯報</button>
+            <button data-group="5">第五組匯報</button>
+            <button data-group="6">第六組匯報</button>
         </div>
         <hr>
         <h3 id="currentActiveGroupText">目前未有組別進行匯報</h3>
-        <button onclick="viewResults()">顯示評分及留言</button>
-        <button onclick="resetCurrentGroup()">重新評分 (清空當前組別紀錄)</button>
-        <button onclick="stopGrading()">返回主頁 (停止評分)</button>
+        <button id="btnViewResults">顯示評分及留言</button>
+        <button id="btnResetGroup">重新評分 (清空當前組別紀錄)</button>
+        <button id="btnStopGrading">返回主頁 (停止評分)</button>
         
         <div id="resultsArea" style="display:none; border:1px solid #000; padding:10px; margin-top:10px;"></div>
     </div>
 
-    <div id="studentPanel" style="display:none;">
+    <!-- 學生等待/選號/評分頁面 -->
+    <div id="studentPanel" class="page">
         <h2 id="studentTitle">等待老師開始...</h2>
         
+        <!-- 選擇學號區 -->
         <div id="studentIdSelectArea" style="display:none;">
             <label>請選擇你的學號：</label>
             <select id="studentId">
                 <option value="">--請選擇--</option>
+                <!-- JS 動態生成 01-28 -->
             </select>
-            <button onclick="proceedToGrade()">確定</button>
+            <button id="btnProceedToGrade">確定</button>
+            <button id="btnBackToHomeFromStudent">返回首頁</button>
         </div>
 
+        <!-- 評分區 -->
         <div id="gradingArea" style="display:none;">
             <h3 id="gradingGroupTitle"></h3>
             <form id="gradingForm">
-                <p>1. 內容充實 (已包括CANVA設計) : <input type="number" id="s1" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
-                <p>2. 編程難度 : <input type="number" id="s2" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
-                <p>3. 作品完成度 (包含作品美觀) : <input type="number" id="s3" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
-                <p>4. 設計理念 (是否具創意) : <input type="number" id="s4" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
-                <p>5. 分工合作 : <input type="number" id="s5" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
+                <p>1. 內容充實 (已包括CANVA設計) : <input type="number" id="s1" min="1" max="5" value="5" class="score-input"></p>
+                <p>2. 編程難度 : <input type="number" id="s2" min="1" max="5" value="5" class="score-input"></p>
+                <p>3. 作品完成度 (包含作品美觀) : <input type="number" id="s3" min="1" max="5" value="5" class="score-input"></p>
+                <p>4. 設計理念 (是否具創意) : <input type="number" id="s4" min="1" max="5" value="5" class="score-input"></p>
+                <p>5. 分工合作 : <input type="number" id="s5" min="1" max="5" value="5" class="score-input"></p>
                 <p>給同學的讚賞或建議留言：<br><textarea id="comment" rows="3" cols="30"></textarea></p>
-                <button type="button" onclick="submitGrade()">提交評分</button>
+                <button type="button" id="btnSubmitGrade">提交評分</button>
             </form>
         </div>
     </div>
 
-    <script>
-        // ==========================================
-        // 版本 1.4: 更新為用戶提供的精準 databaseURL
-        // ==========================================
+    <!-- V1.5 更新：使用 Firebase V9 模組化寫法 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        // 用戶提供的 Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyCScG999fCW5L6956AvYez0IbLVNPKefXg",
             authDomain: "grading--project-base-learning.firebaseapp.com",
-            databaseURL: "https://grading--project-base-learning-default-rtdb.asia-southeast1.firebasedatabase.app/", 
+            databaseURL: "https://grading--project-base-learning-default-rtdb.asia-southeast1.firebasedatabase.app/",
             projectId: "grading--project-base-learning",
             storageBucket: "grading--project-base-learning.firebasestorage.app",
             messagingSenderId: "560828600735",
             appId: "1:560828600735:web:fc69335335b6ff893dadaa",
             measurementId: "G-XMTEPNY44P"
         };
-        
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.database();
 
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 系統狀態變數
         let currentRole = '';
         let hasAlerted = false; 
         let currentActiveGroup = null; 
 
+        // DOM 元素選取
+        const pages = document.querySelectorAll('.page');
+        const resultsArea = document.getElementById('resultsArea');
+        const currentActiveGroupText = document.getElementById('currentActiveGroupText');
+        const studentTitle = document.getElementById('studentTitle');
+        const studentIdSelectArea = document.getElementById('studentIdSelectArea');
+        const gradingArea = document.getElementById('gradingArea');
+        const gradingGroupTitle = document.getElementById('gradingGroupTitle');
+        const gradingForm = document.getElementById('gradingForm');
         const studentSelect = document.getElementById('studentId');
+
+        // 初始化學號 01-28
         for(let i=1; i<=28; i++){
             let id = i < 10 ? '0' + i : i;
-            studentSelect.innerHTML += `<option value="${id}">${id}</option>`;
+            let option = document.createElement('option');
+            option.value = id;
+            option.text = id;
+            studentSelect.appendChild(option);
         }
 
+        // 頁面切換邏輯
         function showPage(pageId) {
-            ['homePage', 'teacherLogin', 'teacherPanel', 'studentPanel'].forEach(id => {
-                document.getElementById(id).style.display = 'none';
-            });
+            pages.forEach(p => p.style.display = 'none');
             document.getElementById(pageId).style.display = 'block';
         }
 
-        function login(role) {
-            currentRole = role;
-            if (role === 'teacher') showPage('teacherLogin');
-            if (role === 'student') {
-                showPage('studentPanel');
-                checkTeacherStatusLocally(); 
+        // --- 事件綁定 ---
+
+        // 首頁按鈕
+        document.getElementById('btnTeacherLogin').addEventListener('click', () => {
+            currentRole = 'teacher';
+            showPage('teacherLogin');
+        });
+        document.getElementById('btnStudentLogin').addEventListener('click', () => {
+            currentRole = 'student';
+            showPage('studentPanel');
+            checkTeacherStatusLocally();
+        });
+
+        // 老師登入頁按鈕
+        document.getElementById('btnVerifyTeacher').addEventListener('click', () => {
+            if(document.getElementById('teacherPwd').value === '9999'){
+                showPage('teacherPanel');
+                document.getElementById('teacherPwd').value = '';
+            } else {
+                alert('密碼錯誤！');
+            }
+        });
+        document.getElementById('btnBackToHomeFromTeacher').addEventListener('click', () => {
+            currentRole = '';
+            showPage('homePage');
+        });
+
+        // 老師主控台按鈕 (群組匯報)
+        document.querySelectorAll('#groupButtons button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const groupNum = e.target.getAttribute('data-group');
+                startGrading(groupNum);
+            });
+        });
+
+        document.getElementById('btnStopGrading').addEventListener('click', () => {
+            set(ref(db, 'system/activeGroup'), null).then(() => {
+                currentRole = '';
+                showPage('homePage');
+            });
+        });
+
+        document.getElementById('btnViewResults').addEventListener('click', viewResults);
+        document.getElementById('btnResetGroup').addEventListener('click', resetCurrentGroup);
+
+        // 學生頁面按鈕
+        document.getElementById('btnProceedToGrade').addEventListener('click', proceedToGrade);
+        document.getElementById('btnSubmitGrade').addEventListener('click', submitGrade);
+        document.getElementById('btnBackToHomeFromStudent').addEventListener('click', () => {
+             currentRole = '';
+             showPage('homePage');
+        });
+
+        // 綁定分數輸入框變更事件
+        document.querySelectorAll('.score-input').forEach(input => {
+            input.addEventListener('change', checkTotalLowScores);
+        });
+
+        // --- 核心功能函式 ---
+
+        function startGrading(groupNum) {
+            set(ref(db, 'system/activeGroup'), groupNum).catch(err => {
+                alert("連接資料庫失敗，請確認 Firebase Rules 已設為 true。");
+                console.error(err);
+            });
+        }
+
+        function viewResults() {
+            if(!currentActiveGroup) return alert("請先選擇一組進行匯報");
+            
+            get(ref(db, 'grades/' + currentActiveGroup)).then((snapshot) => {
+                let data = snapshot.val();
+                if(!data) {
+                    resultsArea.innerHTML = `<h4>第 ${currentActiveGroup} 組 目前尚無評分紀錄</h4>`;
+                    resultsArea.style.display = 'block';
+                    return;
+                }
+
+                let count = Object.keys(data).length;
+                let html = `<h4>第 ${currentActiveGroup} 組 收集到的評分 (${count}份)</h4><ul>`;
+                
+                for(let studentId in data) {
+                    let d = data[studentId];
+                    let total = d.scores.reduce((a,b)=>a+b, 0);
+                    html += `<li>總分: ${total}/25 | 匿名留言: ${d.comment || '無'}</li>`;
+                }
+                html += `</ul>`;
+                
+                resultsArea.innerHTML = html;
+                resultsArea.style.display = 'block';
+            });
+        }
+
+        function resetCurrentGroup() {
+            if(!currentActiveGroup) return;
+            if(confirm(`確定要清空第 ${currentActiveGroup} 組的所有評分嗎？這是無法復原的！`)){
+                remove(ref(db, 'grades/' + currentActiveGroup)).then(() => {
+                    alert('已重置');
+                    viewResults();
+                });
             }
         }
 
-        function verifyTeacher() {
-            if
+        function checkTeacherStatusLocally() {
+            if(currentRole !== 'student') return;
+            if(currentActiveGroup) {
+                studentTitle.innerText = `第 ${currentActiveGroup} 組正在匯報`;
+                studentIdSelectArea.style.display = 'block';
+                gradingArea.style.display = 'none';
+            } else {
+                studentTitle.innerText = `等待老師開始...`;
+                studentIdSelectArea.style.display = 'none';
+                gradingArea.style.display = 'none';
+            }
+        }
+
+        function proceedToGrade() {
+            if(studentSelect.value === ''){
+                return alert('請先選擇學號！');
+            }
+            studentIdSelectArea.style.display = 'none';
+            gradingGroupTitle.innerText = `正在為 第 ${currentActiveGroup} 組 評分`;
+            gradingArea.style.display = 'block';
+            gradingForm.reset();
+            hasAlerted = false; 
+        }
+
+        function checkTotalLowScores() {
+            let lowCount = 0;
+            for(let i=1; i<=5; i++){
+                if(parseInt(document.getElementById('s'+i).value) <= 2) {
+                    lowCount++;
+                }
+            }
+            if(lowCount > 3) {
+                if(!hasAlerted) {
+                    alert("溫馨提示：請同學確認評分是否合理，並以欣賞角度出發。");
+                    hasAlerted = true; 
+                }
+            } else {
+                hasAlerted = false; 
+            }
+        }
+
+        function submitGrade() {
+            let studentId = studentSelect.value;
+            let scores = [
+                parseInt(document.getElementById('s1').value),
+                parseInt(document.getElementById('s2').value),
+                parseInt(document.getElementById('s3').value),
+                parseInt(document.getElementById('s4').value),
+                parseInt(document.getElementById('s5').value)
+            ];
+            let comment = document.getElementById('comment').value;
+
+            get(ref(db, `grades/${currentActiveGroup}/${studentId}`)).then((snapshot) => {
+                if(snapshot.exists()) {
+                    alert('你已經評估過這組了！');
+                } else {
+                    set(ref(db, `grades/${currentActiveGroup}/${studentId}`), {
+                        scores: scores,
+                        comment: comment
+                    }).then(() => {
+                        alert('提交成功！謝謝你的評分。');
+                        checkTeacherStatusLocally(); 
+                    });
+                }
+            });
+        }
+
+        // --- Firebase 實時監聽 ---
+        onValue(ref(db, 'system/activeGroup'), (snapshot) => {
+            currentActiveGroup = snapshot.val();
+            if(currentRole === 'teacher') {
+                if(currentActiveGroup) {
+                    currentActiveGroupText.innerText = `正在評分：第 ${currentActiveGroup} 組`;
+                } else {
+                    currentActiveGroupText.innerText = `目前未有組別進行匯報`;
+                }
+                resultsArea.style.display = 'none'; // 切換組別時隱藏結果
+            }
+            if(currentRole === 'student') {
+                checkTeacherStatusLocally();
+            }
+        });
+
+    </script>
+</body>
+</html>
