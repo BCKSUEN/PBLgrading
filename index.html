@@ -1,0 +1,116 @@
+<!-- 版本：1.4 -->
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <title>常識科同儕評分系統 V1.4 (Firebase精準連線版)</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+    <div id="homePage">
+        <h2>常識科同儕評分系統 (V1.4)</h2>
+        <button onclick="login('teacher')">老師登入</button>
+        <button onclick="login('student')">學生進入</button>
+    </div>
+
+    <div id="teacherLogin" style="display:none;">
+        <h2>老師登入</h2>
+        <input type="password" id="teacherPwd" placeholder="請輸入密碼">
+        <button onclick="verifyTeacher()">登入</button>
+        <button onclick="showPage('homePage')">返回</button>
+    </div>
+
+    <div id="teacherPanel" style="display:none;">
+        <h2>老師主頁 (控制台)</h2>
+        <div>
+            <button onclick="startGrading(1)">第一組匯報</button>
+            <button onclick="startGrading(2)">第二組匯報</button>
+            <button onclick="startGrading(3)">第三組匯報</button>
+            <button onclick="startGrading(4)">第四組匯報</button>
+            <button onclick="startGrading(5)">第五組匯報</button>
+            <button onclick="startGrading(6)">第六組匯報</button>
+        </div>
+        <hr>
+        <h3 id="currentActiveGroupText">目前未有組別進行匯報</h3>
+        <button onclick="viewResults()">顯示評分及留言</button>
+        <button onclick="resetCurrentGroup()">重新評分 (清空當前組別紀錄)</button>
+        <button onclick="stopGrading()">返回主頁 (停止評分)</button>
+        
+        <div id="resultsArea" style="display:none; border:1px solid #000; padding:10px; margin-top:10px;"></div>
+    </div>
+
+    <div id="studentPanel" style="display:none;">
+        <h2 id="studentTitle">等待老師開始...</h2>
+        
+        <div id="studentIdSelectArea" style="display:none;">
+            <label>請選擇你的學號：</label>
+            <select id="studentId">
+                <option value="">--請選擇--</option>
+            </select>
+            <button onclick="proceedToGrade()">確定</button>
+        </div>
+
+        <div id="gradingArea" style="display:none;">
+            <h3 id="gradingGroupTitle"></h3>
+            <form id="gradingForm">
+                <p>1. 內容充實 (已包括CANVA設計) : <input type="number" id="s1" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
+                <p>2. 編程難度 : <input type="number" id="s2" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
+                <p>3. 作品完成度 (包含作品美觀) : <input type="number" id="s3" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
+                <p>4. 設計理念 (是否具創意) : <input type="number" id="s4" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
+                <p>5. 分工合作 : <input type="number" id="s5" min="1" max="5" value="5" onchange="checkTotalLowScores()"></p>
+                <p>給同學的讚賞或建議留言：<br><textarea id="comment" rows="3" cols="30"></textarea></p>
+                <button type="button" onclick="submitGrade()">提交評分</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 版本 1.4: 更新為用戶提供的精準 databaseURL
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCScG999fCW5L6956AvYez0IbLVNPKefXg",
+            authDomain: "grading--project-base-learning.firebaseapp.com",
+            databaseURL: "https://grading--project-base-learning-default-rtdb.asia-southeast1.firebasedatabase.app/", 
+            projectId: "grading--project-base-learning",
+            storageBucket: "grading--project-base-learning.firebasestorage.app",
+            messagingSenderId: "560828600735",
+            appId: "1:560828600735:web:fc69335335b6ff893dadaa",
+            measurementId: "G-XMTEPNY44P"
+        };
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
+        let currentRole = '';
+        let hasAlerted = false; 
+        let currentActiveGroup = null; 
+
+        const studentSelect = document.getElementById('studentId');
+        for(let i=1; i<=28; i++){
+            let id = i < 10 ? '0' + i : i;
+            studentSelect.innerHTML += `<option value="${id}">${id}</option>`;
+        }
+
+        function showPage(pageId) {
+            ['homePage', 'teacherLogin', 'teacherPanel', 'studentPanel'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            document.getElementById(pageId).style.display = 'block';
+        }
+
+        function login(role) {
+            currentRole = role;
+            if (role === 'teacher') showPage('teacherLogin');
+            if (role === 'student') {
+                showPage('studentPanel');
+                checkTeacherStatusLocally(); 
+            }
+        }
+
+        function verifyTeacher() {
+            if
