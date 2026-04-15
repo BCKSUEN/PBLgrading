@@ -1,13 +1,16 @@
-<!-- 版本：2.1 -->
+<!-- 版本：2.2 -->
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>常識科同儕評分系統 V2.1</title>
+    <title>常識科同儕評分系統 V2.2</title>
+    <!-- V2.2 修改：改回經典 CDN 引入，解決本地雙擊測試時 module 被阻擋的問題 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         /* =========================================
-           版本 2.1: CSS 維持 V2.0 風格，新增數據分析區塊樣式
+           維持 V2.1 的活潑小學風與數據分析區塊樣式
            ========================================= */
         :root {
             --primary-color: #4A90E2;
@@ -17,31 +20,15 @@
             --text-color: #333333;
             --border-radius: 16px;
         }
-        body {
-            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0; padding: 20px;
-            display: flex; justify-content: center; align-items: flex-start;
-            min-height: 100vh;
-        }
-        .container {
-            background-color: var(--card-bg);
-            width: 100%; max-width: 800px;
-            padding: 30px; border-radius: var(--border-radius);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08); margin-top: 20px;
-        }
+        body { font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+        .container { background-color: var(--card-bg); width: 100%; max-width: 800px; padding: 30px; border-radius: var(--border-radius); box-shadow: 0 10px 25px rgba(0,0,0,0.08); margin-top: 20px; }
         h2 { color: var(--primary-color); text-align: center; border-bottom: 2px dashed #bbdefb; padding-bottom: 15px;}
         h3 { color: #555; }
         .page { display: none; }
         .page.active { display: block; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-        button {
-            font-size: 18px; font-weight: bold; padding: 12px 24px; margin: 8px;
-            border: none; border-radius: 8px; cursor: pointer;
-            transition: all 0.2s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+        button { font-size: 18px; font-weight: bold; padding: 12px 24px; margin: 8px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         button:active { transform: scale(0.96); box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-primary:hover { background-color: #357ABD; }
@@ -64,13 +51,12 @@
         .result-item { background: white; margin-bottom: 10px; padding: 10px 15px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 5px solid var(--primary-color); }
         .center-content { text-align: center; }
 
-        /* V2.1 新增：數據分析區塊的美化 */
+        /* 數據分析區塊的美化 */
         .analysis-box { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e3e8ee; }
         .avg-score-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 16px; border-bottom: 1px dashed #eee; padding-bottom: 5px;}
         .avg-number { font-weight: bold; color: var(--primary-color); font-size: 18px; }
         .summary-point { background-color: #fff8e1; border-left: 4px solid var(--secondary-color); padding: 10px; margin-bottom: 10px; border-radius: 4px; font-size: 16px;}
-        .comments-section { max-height: 400px; overflow-y: auto; padding-right: 10px; } /* 留言太多時出現捲軸 */
-
+        .comments-section { max-height: 400px; overflow-y: auto; padding-right: 10px; } 
     </style>
 </head>
 <body>
@@ -145,11 +131,11 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
-        // Firebase 連線維持不變 (不會影響舊數據)
+    <!-- 注意這裡：<script> 不再使用 type="module"，確保本地端執行無阻 -->
+    <script>
+        // ==========================================
+        // 初始化 Firebase (V8 Compat 經典寫法)
+        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCScG999fCW5L6956AvYez0IbLVNPKefXg",
             authDomain: "grading--project-base-learning.firebaseapp.com",
@@ -160,14 +146,19 @@
             appId: "1:560828600735:web:fc69335335b6ff893dadaa",
             measurementId: "G-XMTEPNY44P"
         };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
 
+        // 系統變數
         let currentRole = '';
         let hasAlerted = false; 
         let currentActiveGroup = null; 
         let studentScores = [5, 5, 5, 5, 5]; 
 
+        // DOM 選取
         const pages = document.querySelectorAll('.page');
         const resultsArea = document.getElementById('resultsArea');
         const currentActiveGroupText = document.getElementById('currentActiveGroupText');
@@ -177,6 +168,7 @@
         const gradingGroupTitle = document.getElementById('gradingGroupTitle');
         const studentSelect = document.getElementById('studentId');
 
+        // 生成學號
         for(let i=1; i<=28; i++){
             let id = i < 10 ? '0' + i : i;
             let option = document.createElement('option');
@@ -189,6 +181,7 @@
             document.getElementById(pageId).classList.add('active');
         }
 
+        // 綁定事件
         document.getElementById('btnTeacherLogin').addEventListener('click', () => { currentRole = 'teacher'; showPage('teacherLogin'); });
         document.getElementById('btnStudentLogin').addEventListener('click', () => { currentRole = 'student'; showPage('studentPanel'); checkTeacherStatusLocally(); });
         document.getElementById('btnVerifyTeacher').addEventListener('click', () => {
@@ -200,4 +193,181 @@
             btn.addEventListener('click', (e) => { startGrading(e.target.getAttribute('data-group')); });
         });
 
-        document.getElementById('btnStopGrading').addEventListener('click', () => { set(ref(d
+        document.getElementById('btnStopGrading').addEventListener('click', () => { db.ref('system/activeGroup').set(null).then(() => { currentRole = ''; showPage('homePage'); }); });
+        document.getElementById('btnViewResults').addEventListener('click', viewResults);
+        document.getElementById('btnResetGroup').addEventListener('click', resetCurrentGroup);
+        document.getElementById('btnProceedToGrade').addEventListener('click', proceedToGrade);
+        document.getElementById('btnSubmitGrade').addEventListener('click', submitGrade);
+        document.getElementById('btnBackToHomeFromStudent').addEventListener('click', () => { currentRole = ''; showPage('homePage'); });
+
+        document.querySelectorAll('.score-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const group = e.target.closest('.score-group');
+                const criterionIndex = parseInt(group.getAttribute('data-criterion'));
+                const scoreValue = parseInt(e.target.getAttribute('data-val'));
+                group.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                studentScores[criterionIndex] = scoreValue;
+                checkTotalLowScores();
+            });
+        });
+
+        function startGrading(groupNum) { db.ref('system/activeGroup').set(groupNum).catch(err => { alert("連接資料庫失敗。"); console.error(err); }); }
+
+        // ==========================================
+        // 核心更新：數據分析與重點提取引擎 (安全防護版)
+        // ==========================================
+        function viewResults() {
+            if(!currentActiveGroup) return alert("請先選擇一組進行匯報");
+            
+            db.ref('grades/' + currentActiveGroup).once('value').then((snapshot) => {
+                let data = snapshot.val();
+                if(!data) {
+                    resultsArea.innerHTML = `<h4 style="color:#e74c3c;">第 ${currentActiveGroup} 組 目前尚無同學提交評分紀錄。</h4>`;
+                    resultsArea.style.display = 'block';
+                    return;
+                }
+
+                let count = Object.keys(data).length;
+                let criteriaNames = [
+                    "內容充實 (CANVA設計)", "編程難度", "作品完成度 (美觀)", "設計理念 (創意)", "分工合作"
+                ];
+                let totals = [0, 0, 0, 0, 0];
+                let allCommentsText = [];
+                let detailedCommentsHTML = '';
+
+                // 1. 遍歷數據
+                for(let studentId in data) {
+                    let d = data[studentId];
+                    // 防呆：確保舊資料也有分數陣列
+                    let safeScores = d.scores || [0, 0, 0, 0, 0];
+                    for(let i=0; i<5; i++) { totals[i] += safeScores[i] || 0; }
+                    
+                    if(d.comment && d.comment.trim() !== '') {
+                        allCommentsText.push(d.comment.trim());
+                        detailedCommentsHTML += `<div class="result-item"><span style="color:#666; font-size:15px;">📝 "${d.comment}"</span></div>`;
+                    } else {
+                        detailedCommentsHTML += `<div class="result-item"><span style="color:#999; font-size:14px; font-style:italic;">(學號 ${studentId} 同學只給了評分，未有留言)</span></div>`;
+                    }
+                }
+
+                // 2. 計算各項平均分
+                let avgHTML = '<div class="analysis-box"><h4 style="margin-top:0; color:var(--primary-color);">📊 各項平均得分 (滿分5分)</h4>';
+                for(let i=0; i<5; i++) {
+                    let avg = (totals[i] / count).toFixed(1); 
+                    avgHTML += `<div class="avg-score-row"><span>${criteriaNames[i]}</span> <span class="avg-number">${avg} 分</span></div>`;
+                }
+                avgHTML += '</div>';
+
+                // 3. AI 模擬分析：萃取留言重點
+                let summaryHTML = '<div class="analysis-box"><h4 style="margin-top:0; color:var(--secondary-color);">💡 系統留言重點分析</h4>';
+                if(allCommentsText.length === 0) {
+                    summaryHTML += `<p style="color:#777;">同學未有留下具體的文字評語作分析。</p>`;
+                } else {
+                    let posSentences = [];
+                    let conSentences = [];
+                    let posWords = ["好", "豐富", "欣賞", "棒", "出色", "創意", "美觀", "清晰", "有趣", "高分", "讚", "努力"];
+                    let conWords = ["可以", "建議", "改善", "進步", "不夠", "太快", "大聲", "多些", "字", "希望", "可惜"];
+
+                    allCommentsText.forEach(c => {
+                        let sentences = c.split(/[，。！？,!?\n]/);
+                        sentences.forEach(s => {
+                            let text = s.trim();
+                            if(text.length < 2) return;
+                            if(posWords.some(w => text.includes(w))) posSentences.push(text);
+                            else if(conWords.some(w => text.includes(w))) conSentences.push(text);
+                        });
+                    });
+
+                    posSentences.sort((a,b) => b.length - a.length);
+                    conSentences.sort((a,b) => b.length - a.length);
+
+                    let summaryCount = 0;
+                    if(posSentences.length > 0) {
+                        summaryHTML += `<div class="summary-point">🌟 <b>欣賞與肯定：</b>同學們認為「${posSentences[0]}」</div>`;
+                        summaryCount++;
+                    }
+                    if(conSentences.length > 0) {
+                        summaryHTML += `<div class="summary-point">🔧 <b>建設性建議：</b>有同學提出「${conSentences[0]}」</div>`;
+                        summaryCount++;
+                    }
+                    if(summaryCount === 0) {
+                        summaryHTML += `<div class="summary-point">📌 <b>總結：</b>同學的留言多為中性表達，詳情請參考下方留言區。</div>`;
+                    }
+                }
+                summaryHTML += '</div>';
+
+                // 4. 組合
+                let finalHTML = `<h3 style="color:var(--primary-color); text-align:center;">第 ${currentActiveGroup} 組評分報告 (共收集 ${count} 份)</h3>`;
+                finalHTML += avgHTML;
+                finalHTML += summaryHTML;
+                finalHTML += `<h4 style="margin-bottom:10px; color:#555;">💬 所有同學詳細留言：</h4>`;
+                finalHTML += `<div class="comments-section">${detailedCommentsHTML}</div>`;
+                
+                resultsArea.innerHTML = finalHTML;
+                resultsArea.style.display = 'block';
+            });
+        }
+
+        function resetCurrentGroup() {
+            if(!currentActiveGroup) return;
+            if(confirm(`⚠️ 確定要清空第 ${currentActiveGroup} 組的所有評分嗎？這是無法復原的！`)){ db.ref('grades/' + currentActiveGroup).remove().then(() => { alert('✅ 已成功清空資料。'); viewResults(); }); }
+        }
+
+        function checkTeacherStatusLocally() {
+            if(currentRole !== 'student') return;
+            if(currentActiveGroup) {
+                studentTitle.innerHTML = `📢 <b>第 ${currentActiveGroup} 組</b> 正在匯報`;
+                studentIdSelectArea.style.display = 'block'; gradingArea.style.display = 'none';
+            } else {
+                studentTitle.innerHTML = `⏳ 等待老師指示...`;
+                studentIdSelectArea.style.display = 'none'; gradingArea.style.display = 'none';
+            }
+        }
+
+        function proceedToGrade() {
+            if(studentSelect.value === ''){ return alert('⚠️ 請先選擇你的學號！'); }
+            studentIdSelectArea.style.display = 'none';
+            gradingGroupTitle.innerHTML = `正在為 <b>第 ${currentActiveGroup} 組</b> 評分`;
+            gradingArea.style.display = 'block';
+            studentScores = [5, 5, 5, 5, 5];
+            document.querySelectorAll('.score-group').forEach(group => {
+                group.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+                group.querySelector('.score-btn[data-val="5"]').classList.add('active');
+            });
+            document.getElementById('comment').value = '';
+            hasAlerted = false; 
+        }
+
+        function checkTotalLowScores() {
+            let lowCount = studentScores.filter(score => score <= 2).length;
+            if(lowCount > 3) {
+                if(!hasAlerted) { alert("💡 溫馨提示：請同學確認評分是否合理，並盡量以欣賞同學付出心血的角度出發喔！"); hasAlerted = true; }
+            } else { hasAlerted = false; }
+        }
+
+        function submitGrade() {
+            let studentId = studentSelect.value;
+            let comment = document.getElementById('comment').value;
+            db.ref(`grades/${currentActiveGroup}/${studentId}`).once('value').then((snapshot) => {
+                if(snapshot.exists()) { alert('⚠️ 你已經提交過這組的評分了！專心看下一組吧。');
+                } else {
+                    db.ref(`grades/${currentActiveGroup}/${studentId}`).set({ scores: studentScores, comment: comment }).then(() => {
+                        alert('✅ 提交成功！謝謝你的評分。'); checkTeacherStatusLocally(); 
+                    });
+                }
+            });
+        }
+
+        db.ref('system/activeGroup').on('value', (snapshot) => {
+            currentActiveGroup = snapshot.val();
+            if(currentRole === 'teacher') {
+                if(currentActiveGroup) { currentActiveGroupText.innerHTML = `📢 正在收集 <b>第 ${currentActiveGroup} 組</b> 的評分...`; } else { currentActiveGroupText.innerHTML = `準備就緒，請選擇匯報組別`; }
+                resultsArea.style.display = 'none'; 
+            }
+            if(currentRole === 'student') { checkTeacherStatusLocally(); }
+        });
+
+    </script>
+</body>
+</html>
